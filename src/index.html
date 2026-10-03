@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:"
+    />
+    <title>ReachOut — Contacts</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#" aria-label="ReachOut home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M7 22.5 12.6 17l3.6 3.6L25 11.8" />
+              <path d="M18.8 11.8H25v6.3" />
+            </svg>
+          </span>
+          <span>reachout</span>
+        </a>
+
+        <div class="sidebar-label">WORKSPACE</div>
+        <nav class="primary-nav" aria-label="Main navigation">
+          <button class="nav-item active" data-filter="all" aria-label="All contacts">
+            <span class="nav-icon" aria-hidden="true">▦</span>
+            <span>All contacts</span>
+            <span class="nav-count" id="all-count">0</span>
+          </button>
+          <button class="nav-item" data-filter="favorites" aria-label="Favorites">
+            <span class="nav-icon heart-icon" aria-hidden="true">♡</span>
+            <span>Favorites</span>
+            <span class="nav-count" id="favorite-count">0</span>
+          </button>
+        </nav>
+        <div class="sidebar-label tools-label">TOOLS</div>
+        <nav class="tools-nav" aria-label="Contact tools">
+          <button class="nav-item tool-action" id="import-csv-button" type="button" aria-label="Import CSV">
+            <span class="nav-icon" aria-hidden="true">⇧</span>
+            <span>Import CSV</span>
+          </button>
+          <button class="nav-item tool-action" id="export-csv-button" type="button" aria-label="Export CSV">
+            <span class="nav-icon" aria-hidden="true">⇩</span>
+            <span>Export CSV</span>
+          </button>
+        </nav>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false">
+          <span class="theme-toggle-icon" id="theme-toggle-icon" aria-hidden="true">☾</span>
+          <span id="theme-toggle-label">Dark mode</span>
+        </button>
+        <p class="theme-error" id="theme-error" role="alert" hidden></p>
+        <div class="sidebar-resize-handle" id="sidebar-resize-handle" role="separator" aria-label="Resize sidebar" aria-orientation="vertical" aria-valuemin="180" aria-valuemax="360" aria-valuenow="248" tabindex="0"></div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-slash">/</span><strong id="breadcrumb-current">All contacts</strong></div>
+        </header>
+
+        <section class="page-content">
+          <div class="page-heading">
+            <div>
+              <h1 id="page-title">All contacts <span class="heading-count" id="heading-count">0</span></h1>
+            </div>
+          </div>
+
+          <div class="content-grid">
+            <section class="contacts-panel" aria-label="Contacts list">
+              <div class="list-toolbar">
+                <label class="search-field">
+                  <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.8" cy="8.8" r="5.8" /><path d="m13.2 13.2 4 4" /></svg>
+                  <input type="search" id="search-input" placeholder="Search contacts..." autocomplete="off" />
+                  <kbd>⌘ K</kbd>
+                </label>
+                <div class="sort-picker">
+                  <button class="button button-quiet field-picker-trigger" id="sort-picker-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="sort-picker-menu">
+                    <span aria-hidden="true">↕</span> Sort <span class="field-picker-chevron" aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="field-picker-menu sort-picker-menu" id="sort-picker-menu" role="group" aria-label="Sort contacts" hidden>
+                    <span class="field-picker-title">Sort by</span>
+                    <button type="button" role="radio" aria-checked="true" data-sort-order="firstName-asc">(A-Z) First name</button>
+                    <button type="button" role="radio" aria-checked="false" data-sort-order="firstName-desc">(Z-A) First name</button>
+                    <button type="button" role="radio" aria-checked="false" data-sort-order="lastName-asc">(A-Z) Last name</button>
+                    <button type="button" role="radio" aria-checked="false" data-sort-order="lastName-desc">(Z-A) Last name</button>
+                  </div>
+                </div>
+                <button class="button button-primary toolbar-add" id="add-contact-button">
+                  <span aria-hidden="true">＋</span> Add contact
+                </button>
+                <div class="field-picker">
+                  <button class="button button-quiet field-picker-trigger" id="field-picker-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="field-picker-menu">
+                    <span aria-hidden="true">☷</span> Fields <span class="field-picker-chevron" aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="field-picker-menu" id="field-picker-menu" role="group" aria-label="Visible contact fields" hidden>
+                    <span class="field-picker-title">Show columns</span>
+                    <label><input type="checkbox" data-visible-field="email" /> Email address</label>
+                    <label><input type="checkbox" data-visible-field="phone" /> Phone number</label>
+                    <label><input type="checkbox" data-visible-field="company" /> Company</label>
+                    <label><input type="checkbox" data-visible-field="birthday" /> Birthday</label>
+                    <label><input type="checkbox" data-visible-field="address" /> Address</label>
+                    <label><input type="checkbox" data-visible-field="notes" /> Notes</label>
+                  </div>
+                </div>
+              </div>
+              <div class="list-table columns-2" id="list-table">
+                <div class="list-label-row" id="list-label-row">
+                  <span>NAME</span>
+                  <span data-field-column="email">EMAIL ADDRESS</span>
+                  <span data-field-column="phone">PHONE NUMBER</span>
+                  <span class="actions-heading"></span>
+                </div>
+                <div class="contact-list" id="contact-list" aria-live="polite"></div>
+              </div>
+              <div class="list-footer" id="list-footer"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog class="contact-dialog" id="contact-dialog">
+      <form id="contact-form">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">YOUR ADDRESS BOOK</p>
+            <h2 id="dialog-title">Add a contact</h2>
+          </div>
+          <button type="button" class="icon-button close-dialog" aria-label="Close dialog">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="form-field">First name <span class="required">*</span>
+            <input name="firstName" required maxlength="120" placeholder="e.g. Alex" autocomplete="given-name" />
+          </label>
+          <label class="form-field">Last name
+            <input name="lastName" maxlength="120" placeholder="e.g. Morgan" autocomplete="family-name" />
+          </label>
+          <label class="form-field">Email address
+            <input name="email" type="email" maxlength="254" placeholder="alex@example.com" autocomplete="email" />
+          </label>
+          <label class="form-field">Phone number
+            <input name="phone" type="tel" maxlength="60" placeholder="+1 (555) 000-0000" autocomplete="tel" />
+          </label>
+          <label class="form-field">Company
+            <input name="company" maxlength="120" placeholder="Where they work" autocomplete="organization" />
+          </label>
+          <label class="form-field">Birthday
+            <input name="birthday" type="date" />
+          </label>
+          <label class="form-field field-full">Address
+            <input name="address" maxlength="300" placeholder="Street, city, postal code" autocomplete="street-address" />
+          </label>
+          <label class="form-field field-full">Notes
+            <textarea name="notes" rows="3" maxlength="2000" placeholder="Add a little note to remember..."></textarea>
+          </label>
+          <label class="favorite-field field-full"><input type="checkbox" name="favorite" /> <span>♡</span> Add to favorites</label>
+        </div>
+        <p class="form-error" id="form-error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="button button-quiet close-dialog">Cancel</button>
+          <button type="submit" class="button button-primary" id="save-contact-button">Save contact</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="contact-card-dialog" id="contact-card-dialog" aria-labelledby="contact-card-title">
+      <section class="contact-card">
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">CONTACT DETAILS</p>
+            <div class="contact-card-name-row">
+              <h2 id="contact-card-title"></h2>
+              <button type="button" class="row-action row-edit contact-card-edit-button" id="contact-card-edit-button" aria-label="Edit contact" title="Edit contact">✎</button>
+            </div>
+          </div>
+          <button type="button" class="icon-button close-contact-card" aria-label="Close contact card">×</button>
+        </div>
+        <div class="contact-card-details" id="contact-card-details"></div>
+        <div class="dialog-actions">
+          <button type="button" class="button button-quiet close-contact-card">Close</button>
+        </div>
+      </section>
+    </dialog>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
