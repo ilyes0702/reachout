@@ -1,8 +1,8 @@
 # ReachOut
 
-ReachOut is a local-first desktop address book built with Electron. Add and manage
-contacts, search by name or details, and keep favorite people close. Contact data
-is stored on this computer in the app's Electron user-data folder.
+ReachOut is a local-first desktop address book built with Electron. Store and
+manage contact details on your computer, search your address book, and keep
+favorite people easy to find.
 
 ## Run locally
 
@@ -11,32 +11,57 @@ npm install
 npm start
 ```
 
-## Contact details
+Run the JavaScript syntax checks with:
 
-Each contact can include a first name, last name, email address, phone number,
-company, birthday, address, notes, and a favorite flag. First name is required.
+```powershell
+npm run check
+```
 
-Use **Import CSV** under the sidebar's **Tools** section to import a CSV with a
-`Name` column or a `First Name` column; `Last Name` is optional. Full names in a
-`Name` column are split into first name and last name. Optional headers include
-`Email`, `Phone`, `Company`, `Birthday`, `Address`, `Notes`, and `Favorite`.
-Quoted CSV values, including commas and line breaks, are supported; rows without
-a name are skipped and reported. Use **Export CSV** in the same section to save
-all contacts and their details as a CSV file.
+## Manage contacts
 
-Use the sort dropdown in the contacts toolbar to choose ascending or descending
-alphabetical order by first name or last name.
+Create a contact with a first name (required) and any of these optional details:
+last name, email address, phone number, company, birthday, address, and notes.
+You can also mark a contact as a favorite.
 
-Use the sidebar's appearance toggle to switch between light and dark mode. The
-selected theme is remembered in the app's local preferences on this device.
-Drag the sidebar's right edge to resize it, or press **Ctrl+B** to collapse or
-restore it. The sidebar layout is remembered on this device.
+Search contacts from the toolbar. Click a contact row to open its read-only
+detail card, which displays every saved field. Use the pencil beside the name
+on the card to edit the contact. Contact rows also have a pencil button to open
+the edit form directly, a heart button to toggle favorite status, and a delete
+button.
 
-Use the **Fields** menu beside the contacts controls to choose which optional
-columns appear in the contact list. The name and row actions remain visible,
-and your field selection is saved locally without changing contact data. All
-fields remain available in the add and edit contact forms.
+Click an email address in the contact list to open a new draft in your system's
+default email application.
 
-Select a contact to open its read-only detail card, which shows all contact
-fields. Use the pencil beside the name in the card, or the pencil on a contact
-row, to open the existing edit form.
+## Import and export
+
+The sidebar's **Tools** section contains **Import CSV** and **Export CSV**.
+Import accepts CSV files with a `Name` column or a `First Name` column; `Last
+Name` is optional. Full names in a `Name` column are split into first and last
+names. Optional headers include `Email`, `Phone`, `Company`, `Birthday`,
+`Address`, `Notes`, and `Favorite`. Quoted values, including commas and line
+breaks, are supported. Rows without a name are skipped and reported.
+
+Export saves all contacts and their details as a CSV file, regardless of which
+columns are currently visible in the list.
+
+## Customize the workspace
+
+- Use the **Sort** menu to sort by first or last name in ascending `(A-Z)` or
+  descending `(Z-A)` order.
+- Use the **Fields** menu to choose which optional columns appear in the
+  contact list. The name and row actions remain visible. Hiding a column only
+  changes the list display; saved contact details are preserved and remain
+  available in the contact card and edit form.
+- Use the sidebar's appearance toggle to switch between light and dark mode.
+- Drag the sidebar's right edge to resize it. Focus the resize handle and use
+  the arrow keys for keyboard resizing.
+- Press **Ctrl+B** to collapse or restore the sidebar.
+
+Your theme, visible columns, and sidebar layout are remembered in local
+preferences on this device.
+
+## Local data
+
+Contact data and app preferences are stored locally in Electron's per-user
+`userData` folder. ReachOut does not require a remote account or contact
+syncing service.
