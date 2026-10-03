@@ -8,6 +8,7 @@
     "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js"
   },
   "devDependencies": {
-    "electron": "^38.2.0"
+    "electron": "^38.2.0",
+    "electron-builder": "^26.15.3"
   }
 }
