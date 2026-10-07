@@ -142,26 +142,19 @@ kbd { flex: 0 0 auto; padding: 3px 5px; border: 1px solid #eeeeF1; border-radius
 .field-picker-menu input:disabled { cursor: wait; }
 .list-table { overflow-x: auto; }
 .list-label-row, .contact-row { display: grid; align-items: center; gap: 12px; }
-.list-table.columns-0 .list-label-row, .list-table.columns-0 .contact-row { grid-template-columns: minmax(150px, 1fr) 104px; min-width: 332px; }
-.list-table.columns-1 .list-label-row, .list-table.columns-1 .contact-row { grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 1fr) 104px; min-width: 457px; }
-.list-table.columns-2 .list-label-row, .list-table.columns-2 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(2, minmax(120px, 1fr)) 104px; min-width: 582px; }
-.list-table.columns-3 .list-label-row, .list-table.columns-3 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(3, minmax(120px, 1fr)) 104px; min-width: 707px; }
-.list-table.columns-4 .list-label-row, .list-table.columns-4 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(4, minmax(120px, 1fr)) 104px; min-width: 832px; }
-.list-table.columns-5 .list-label-row, .list-table.columns-5 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(5, minmax(120px, 1fr)) 104px; min-width: 957px; }
-.list-table.columns-6 .list-label-row, .list-table.columns-6 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(6, minmax(120px, 1fr)) 104px; min-width: 1082px; }
+.list-table.columns-0 .list-label-row, .list-table.columns-0 .contact-row { grid-template-columns: minmax(150px, 1fr) 132px; min-width: 360px; }
+.list-table.columns-1 .list-label-row, .list-table.columns-1 .contact-row { grid-template-columns: minmax(150px, 1.1fr) minmax(120px, 1fr) 132px; min-width: 485px; }
+.list-table.columns-2 .list-label-row, .list-table.columns-2 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(2, minmax(120px, 1fr)) 132px; min-width: 610px; }
+.list-table.columns-3 .list-label-row, .list-table.columns-3 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(3, minmax(120px, 1fr)) 132px; min-width: 735px; }
+.list-table.columns-4 .list-label-row, .list-table.columns-4 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(4, minmax(120px, 1fr)) 132px; min-width: 860px; }
+.list-table.columns-5 .list-label-row, .list-table.columns-5 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(5, minmax(120px, 1fr)) 132px; min-width: 985px; }
+.list-table.columns-6 .list-label-row, .list-table.columns-6 .contact-row { grid-template-columns: minmax(150px, 1.1fr) repeat(6, minmax(120px, 1fr)) 132px; min-width: 1110px; }
 .list-label-row { min-height: 34px; padding: 0 17px; border-top: 1px solid #f1f1f3; border-bottom: 1px solid #f1f1f3; color: #a3a3ad; background: #fdfdfd; font-size: 8px; font-weight: 700; letter-spacing: .7px; }
 .contact-list { min-height: 0; }
 .contact-row { min-height: 63px; padding: 0 17px; border-bottom: 1px solid #f2f2f4; cursor: pointer; transition: background .12s; }
 .contact-row:hover { background: #faf9fd; }
-.contact-person { min-width: 0; display: flex; align-items: center; gap: 9px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.contact-person { min-width: 0; display: flex; align-items: center; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .contact-person:focus-visible, .row-action:focus-visible { outline: 2px solid #8068e2; outline-offset: 3px; }
-.avatar { width: 31px; height: 31px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; font: 700 10px "Manrope", sans-serif; letter-spacing: -.2px; }
-.avatar-tone-0 { background: #eeeaff; color: #6c59c7; }
-.avatar-tone-1 { background: #ffe9e5; color: #bd6659; }
-.avatar-tone-2 { background: #e2f4ed; color: #43856a; }
-.avatar-tone-3 { background: #fff0d8; color: #a6772e; }
-.avatar-tone-4 { background: #e2efff; color: #4d78ad; }
-.avatar-tone-5 { background: #fce6f1; color: #a64e7b; }
 .contact-name { min-width: 0; overflow: hidden; color: #3c3b46; font-size: 16px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .contact-email, .contact-phone { overflow: hidden; color: #888893; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .email-link { min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
@@ -171,6 +164,7 @@ kbd { flex: 0 0 auto; padding: 3px 5px; border: 1px solid #eeeeF1; border-radius
 .row-action { display: grid; width: 29px; height: 29px; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; color: #a4a3ae; background: transparent; font-size: 15px; cursor: pointer; }
 .row-action:hover { border-color: #ece9f5; background: #f8f7fc; }
 .row-favorite.is-favorite { color: #8067d8; }
+.row-reachout.is-reachout { color: #43856a; }
 .row-edit { color: #8069dc; }
 .row-edit:hover { border-color: #ece9f5; background: #f8f7fc; }
 .row-delete:hover { color: #b54e47; border-color: #f1d9d7; background: #fff6f5; }
@@ -280,6 +274,7 @@ html[data-theme="dark"] .contact-open-button:hover .contact-name { color: #c7baf
 html[data-theme="dark"] .row-action { color: #aaa8b7; }
 html[data-theme="dark"] .row-action:hover { background: #302d3b; border-color: #494458; }
 html[data-theme="dark"] .row-favorite.is-favorite { color: #c7baff; }
+html[data-theme="dark"] .row-reachout.is-reachout { color: #8bd0aa; }
 html[data-theme="dark"] .row-edit { color: #c7baff; }
 html[data-theme="dark"] .row-delete:hover { color: #f0988f; background: #3b292c; border-color: #604044; }
 html[data-theme="dark"] .list-footer-error { color: #f0988f; }
@@ -306,10 +301,8 @@ html[data-theme="dark"] .button-quiet:hover { background: #343440; }
 @media (max-width: 1120px) {
   .topbar { padding: 0 25px; }
   .page-content { padding: 30px 25px; }
-  .list-label-row, .contact-row { grid-template-columns: minmax(120px, 1.1fr) minmax(100px, 1.15fr) minmax(90px, 1fr) 104px; gap: 7px; }
+  .list-label-row, .contact-row { grid-template-columns: minmax(120px, 1.1fr) minmax(100px, 1.15fr) minmax(90px, 1fr) 132px; gap: 7px; }
   .list-label-row, .contact-row { padding-left: 12px; padding-right: 12px; }
-  .contact-person { gap: 6px; }
-  .avatar { width: 27px; height: 27px; }
 }
 html[data-theme="dark"] .sidebar-resize-handle:hover,
 html[data-theme="dark"] .sidebar-resize-handle:focus-visible { background: #a694f355; }

@@ -5,7 +5,8 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/renderer.js && node --check src/birthday-reminders.js",
+    "test": "node --test",
     "dist": "electron-builder --win"
   },
   "devDependencies": {
@@ -17,6 +18,9 @@
     "productName": "ReachOut",
     "directories": {
       "output": "dist"
+    },
+    "nsis": {
+      "include": "build/installer.nsh"
     },
     "win": {
       "target": [

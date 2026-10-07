@@ -1,10 +1,19 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Notification, shell } = require("electron");
+const { execFile } = require("node:child_process");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
+const { promisify } = require("node:util");
+const {
+  birthdayOccurrenceTomorrow,
+  birthdayMailto,
+  birthdayToastXml,
+  isValidEmail,
+} = require("./birthday-reminders");
 
 const CONTACT_FIELDS = ["firstName", "lastName", "email", "phone", "company", "birthday", "address", "notes"];
 const VISIBLE_FIELD_OPTIONS = ["email", "phone", "company", "birthday", "address", "notes"];
+const execFileAsync = promisify(execFile);
 const CSV_HEADERS = {
   name: ["name", "fullname", "contactname"],
   firstName: ["firstname", "givenname"],
@@ -16,6 +25,7 @@ const CSV_HEADERS = {
   address: ["address", "streetaddress"],
   notes: ["notes", "note"],
   favorite: ["favorite", "favourite"],
+  reachout: ["reachout"],
 };
 let contacts = [];
 let dataFile;
@@ -24,6 +34,26 @@ let theme = "light";
 let visibleFields = ["email", "phone"];
 let sidebarWidth = 248;
 let sidebarCollapsed = false;
+let reminderStateFile;
+let reminderCheckPromise = null;
+let appReadyForRequests = false;
+const isBirthdayReminderTask = process.argv.includes("--birthday-reminders");
+const pendingSecondInstances = [];
+
+app.setAppUserModelId("com.iaa.reachout");
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", (_event, commandLine) => {
+  const isReminderTask = commandLine.includes("--birthday-reminders");
+  if (!appReadyForRequests) {
+    pendingSecondInstances.push(isReminderTask);
+    return;
+  }
+  handleSecondInstance(isReminderTask).catch(showReminderError);
+});
 
 // Write through a temporary file so an interrupted save does not leave partial JSON.
 async function persistContacts(nextContacts) {
@@ -47,7 +77,10 @@ async function loadContacts() {
       ...contact,
       ...normalizeContact(contact),
     }));
-    if (parsed.some((contact) => typeof contact.firstName !== "string" || typeof contact.lastName !== "string")) {
+    if (parsed.some((contact) => (
+      typeof contact.firstName !== "string" || typeof contact.lastName !== "string" ||
+      typeof contact.reachout !== "boolean"
+    ))) {
       await persistContacts(contacts);
     }
   } catch (error) {
@@ -84,6 +117,145 @@ async function loadPreferences() {
   }
 }
 
+function showReminderError(error) {
+  dialog.showErrorBox("ReachOut birthday reminder error", error.message || String(error));
+}
+
+function draftBirthdayEmail(contact) {
+  shell.openExternal(birthdayMailto(contact)).catch(showReminderError);
+}
+
+function showBirthdayNotification(contact) {
+  const hasEmail = isValidEmail(contact.email);
+  const title = `${contact.name}'s birthday is tomorrow`;
+  const body = hasEmail
+    ? "Send them birthday wishes with a quick email."
+    : "Add an email address to this contact to draft a birthday email.";
+  const options = {
+    title,
+    body,
+    actions: hasEmail && process.platform === "darwin"
+      ? [{ type: "button", text: "Draft Birthday Email" }]
+      : [],
+  };
+
+  if (process.platform === "win32") {
+    options.toastXml = birthdayToastXml(contact);
+  }
+
+  try {
+    const notification = new Notification(options);
+    if (process.platform === "darwin") {
+      notification.on("action", (_event, actionIndex) => {
+        if (actionIndex === 0 && hasEmail) draftBirthdayEmail(contact);
+      });
+    }
+    notification.on("failed", (_event, error) => showReminderError(error));
+    notification.show();
+    return true;
+  } catch (error) {
+    showReminderError(error);
+    return false;
+  }
+}
+
+async function checkBirthdayReminders() {
+  if (reminderCheckPromise) return reminderCheckPromise;
+  reminderCheckPromise = (async () => {
+    if (!Notification.isSupported()) {
+      throw new Error("Desktop notifications are not supported on this system.");
+    }
+
+    const today = new Date();
+    const notifiedOccurrences = new Map();
+    try {
+      const state = JSON.parse(await fs.readFile(reminderStateFile, "utf8"));
+      if (state.notifiedOccurrences && typeof state.notifiedOccurrences === "object" &&
+          !Array.isArray(state.notifiedOccurrences)) {
+        for (const [contactId, occurrence] of Object.entries(state.notifiedOccurrences)) {
+          if (typeof occurrence === "string") notifiedOccurrences.set(contactId, occurrence);
+        }
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+
+    let stateChanged = false;
+    for (const contact of contacts) {
+      const occurrence = birthdayOccurrenceTomorrow(contact.birthday, today);
+      if (!occurrence || notifiedOccurrences.get(contact.id) === occurrence) continue;
+      if (!showBirthdayNotification(contact)) continue;
+      notifiedOccurrences.set(contact.id, occurrence);
+      stateChanged = true;
+    }
+
+    if (!stateChanged) return;
+    const temporaryFile = `${reminderStateFile}.tmp`;
+    await fs.writeFile(
+      temporaryFile,
+      JSON.stringify({ notifiedOccurrences: Object.fromEntries(notifiedOccurrences) }, null, 2),
+      "utf8",
+    );
+    await fs.rename(temporaryFile, reminderStateFile);
+  })();
+  try {
+    await reminderCheckPromise;
+  } finally {
+    reminderCheckPromise = null;
+  }
+}
+
+function scheduleNextBirthdayCheck() {
+  const now = new Date();
+  const nextCheck = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0, 0);
+  if (nextCheck <= now) nextCheck.setDate(nextCheck.getDate() + 1);
+  setTimeout(() => {
+    checkBirthdayReminders()
+      .catch(showReminderError)
+      .finally(scheduleNextBirthdayCheck);
+  }, nextCheck.getTime() - now.getTime());
+}
+
+function requestBirthdayReminderCheck() {
+  checkBirthdayReminders().catch(showReminderError);
+}
+
+async function registerBirthdayReminderTask() {
+  if (process.platform !== "win32") return;
+
+  const commandParts = [`"${process.execPath}"`];
+  if (!app.isPackaged) commandParts.push(`"${app.getAppPath()}"`);
+  commandParts.push("--birthday-reminders");
+  await execFileAsync("schtasks.exe", [
+    "/Create",
+    "/F",
+    "/SC", "DAILY",
+    "/ST", "09:00",
+    "/TN", "ReachOut Birthday Reminders",
+    "/TR", commandParts.join(" "),
+    "/RL", "LIMITED",
+    "/IT",
+  ], { windowsHide: true, timeout: 15000 });
+}
+
+async function handleSecondInstance(isReminderTask) {
+  if (isReminderTask) {
+    await checkBirthdayReminders();
+    return;
+  }
+  openMainWindow();
+}
+
+function openMainWindow() {
+  const existingWindow = BrowserWindow.getAllWindows()[0];
+  if (existingWindow) {
+    existingWindow.show();
+    existingWindow.focus();
+    return;
+  }
+  createWindow();
+}
+
 async function savePreferences(nextPreferences) {
   const temporaryFile = `${preferencesFile}.tmp`;
   await fs.writeFile(temporaryFile, JSON.stringify(nextPreferences, null, 2), "utf8");
@@ -109,6 +281,7 @@ function normalizeContact(input) {
   }
   contact.name = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
   contact.favorite = input.favorite === true;
+  contact.reachout = input.reachout === true;
 
   if (!contact.firstName) {
     throw new Error("A first name is required.");
@@ -236,6 +409,7 @@ function parseImportedContacts(contents) {
       address: valueAt(columns.address),
       notes: valueAt(columns.notes),
       favorite: ["true", "yes", "1", "favorite", "favourite"].includes(favoriteValue),
+      reachout: ["true", "yes", "1"].includes(valueAt(columns.reachout).toLocaleLowerCase()),
     }));
   }
 
@@ -261,6 +435,7 @@ function serializeContactsCSV(contactList) {
     ["Address", "address"],
     ["Notes", "notes"],
     ["Favorite", "favorite"],
+    ["ReachOut", "reachout"],
   ];
   const rows = [
     fields.map(([header]) => header),
@@ -293,6 +468,7 @@ ipcMain.handle("contacts:create", async (_event, input) => {
   // Persist first so a failed disk write cannot report an unsaved change as successful.
   await persistContacts(nextContacts);
   contacts = nextContacts;
+  requestBirthdayReminderCheck();
   return contact;
 });
 
@@ -305,11 +481,13 @@ ipcMain.handle("contacts:update", async (_event, id, input) => {
   const updatedContact = {
     ...existing,
     ...normalizeContact(input),
+    reachout: existing.reachout,
     updatedAt: new Date().toISOString(),
   };
   const nextContacts = contacts.map((contact) => (contact.id === id ? updatedContact : contact));
   await persistContacts(nextContacts);
   contacts = nextContacts;
+  requestBirthdayReminderCheck();
   return updatedContact;
 });
 
@@ -331,6 +509,22 @@ ipcMain.handle("contacts:toggle-favorite", async (_event, id) => {
   const updatedContact = {
     ...existing,
     favorite: !existing.favorite,
+    updatedAt: new Date().toISOString(),
+  };
+  const nextContacts = contacts.map((contact) => (contact.id === id ? updatedContact : contact));
+  await persistContacts(nextContacts);
+  contacts = nextContacts;
+  return updatedContact;
+});
+
+ipcMain.handle("contacts:toggle-reachout", async (_event, id) => {
+  const existing = contacts.find((contact) => contact.id === id);
+  if (!existing) {
+    throw new Error("This contact no longer exists.");
+  }
+  const updatedContact = {
+    ...existing,
+    reachout: !existing.reachout,
     updatedAt: new Date().toISOString(),
   };
   const nextContacts = contacts.map((contact) => (contact.id === id ? updatedContact : contact));
@@ -361,6 +555,7 @@ ipcMain.handle("contacts:import-csv", async () => {
   const nextContacts = [...newContacts, ...contacts];
   await persistContacts(nextContacts);
   contacts = nextContacts;
+  requestBirthdayReminderCheck();
   return { canceled: false, imported: newContacts.length, skipped };
 });
 
@@ -433,19 +628,47 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  if (!hasSingleInstanceLock) return;
   // Store user data in Electron's per-user application data directory.
   const userDataPath = app.getPath("userData");
   dataFile = path.join(userDataPath, "contacts.json");
   preferencesFile = path.join(userDataPath, "preferences.json");
+  reminderStateFile = path.join(userDataPath, "birthday-reminders.json");
   await loadContacts();
   await loadPreferences();
-  createWindow();
+  if (!isBirthdayReminderTask) {
+    createWindow();
+  }
+  appReadyForRequests = true;
+
+  if (process.platform === "win32" && !isBirthdayReminderTask) {
+    try {
+      await registerBirthdayReminderTask();
+    } catch (error) {
+      dialog.showErrorBox(
+        "Birthday reminders aren't scheduled",
+        `ReachOut couldn't schedule the daily 9:00 AM birthday reminder task.\n\n${error.stderr?.trim() || error.message}`,
+      );
+    }
+  }
+  try {
+    await checkBirthdayReminders();
+  } catch (error) {
+    showReminderError(error);
+  }
+  if (isBirthdayReminderTask) {
+    app.quit();
+    return;
+  }
+  scheduleNextBirthdayCheck();
+
+  while (pendingSecondInstances.length) {
+    await handleSecondInstance(pendingSecondInstances.shift());
+  }
 
   app.on("activate", () => {
     // macOS commonly keeps the app running after its last window is closed.
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
   });
 }).catch((error) => {
   // Surface startup and data-file errors instead of opening with missing state.

@@ -20,6 +20,7 @@ const elements = {
   breadcrumb: document.getElementById("breadcrumb-current"),
   allCount: document.getElementById("all-count"),
   favoriteCount: document.getElementById("favorite-count"),
+  reachoutCount: document.getElementById("reachout-count"),
   themeToggle: document.getElementById("theme-toggle"),
   themeToggleIcon: document.getElementById("theme-toggle-icon"),
   themeToggleLabel: document.getElementById("theme-toggle-label"),
@@ -93,15 +94,6 @@ function escapeHTML(value) {
   })[character]);
 }
 
-function initials(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
-}
-
-function colorIndexFor(contact) {
-  const hash = [...contact.id].reduce((total, character) => total + character.charCodeAt(0), 0);
-  return hash % 6;
-}
-
 function setVisibleFields(fields) {
   visibleFields = visibleFieldOptions.map(({ key }) => key).filter((key) => fields.includes(key));
   elements.listTable.className = `list-table columns-${visibleFields.length}`;
@@ -132,6 +124,7 @@ function visibleContacts() {
   const query = elements.search.value.trim().toLocaleLowerCase();
   return contacts
     .filter((contact) => activeFilter !== "favorites" || contact.favorite)
+    .filter((contact) => activeFilter !== "reachout" || contact.reachout)
     .filter((contact) => !query || [
       contact.name, contact.email, contact.phone, contact.company, contact.address, contact.notes,
     ].some((value) => value?.toLocaleLowerCase().includes(query)))
@@ -150,9 +143,11 @@ function visibleContacts() {
 
 function render() {
   const favorites = contacts.filter((contact) => contact.favorite).length;
+  const reachout = contacts.filter((contact) => contact.reachout).length;
   const visible = visibleContacts();
   elements.allCount.textContent = contacts.length;
   elements.favoriteCount.textContent = favorites;
+  elements.reachoutCount.textContent = reachout;
   elements.headingCount.textContent = visible.length;
   elements.listFooter.classList.remove("list-footer-error");
   elements.listFooter.textContent = visible.length
@@ -162,6 +157,9 @@ function render() {
   if (activeFilter === "favorites") {
     elements.pageTitle.firstChild.textContent = "Favorites ";
     elements.breadcrumb.textContent = "Favorites";
+  } else if (activeFilter === "reachout") {
+    elements.pageTitle.firstChild.textContent = "ReachOut ";
+    elements.breadcrumb.textContent = "ReachOut";
   } else {
     elements.pageTitle.firstChild.textContent = "All contacts ";
     elements.breadcrumb.textContent = "All contacts";
@@ -175,14 +173,16 @@ function render() {
   if (!visible.length) {
     const title = elements.search.value.trim()
       ? "No contacts found"
-      : activeFilter === "favorites" ? "No favorites yet" : "Your address book is ready";
+      : activeFilter === "favorites" ? "No favorites yet"
+        : activeFilter === "reachout" ? "Your ReachOut list is empty" : "Your address book is ready";
     const message = elements.search.value.trim()
       ? "Try a different name, email, phone number, or company."
-      : activeFilter === "favorites" ? "Mark a contact as a favorite and they'll show up here." : "Add someone to keep their details close at hand.";
+      : activeFilter === "favorites" ? "Mark a contact as a favorite and they'll show up here."
+        : activeFilter === "reachout" ? "Add people you plan to reach out to soon from the contact list."
+          : "Add someone to keep their details close at hand.";
     elements.list.innerHTML = `<div class="list-empty"><strong>${title}</strong>${message}</div>`;
   } else {
     elements.list.innerHTML = visible.map((contact) => {
-      const colorIndex = colorIndexFor(contact);
       const fieldCells = visibleFields.map((field) => {
         const value = displayFieldValue(contact, field);
         if (field === "email" && contact.email) {
@@ -193,11 +193,11 @@ function render() {
       return `
         <div class="contact-row" data-id="${escapeHTML(contact.id)}" title="View ${escapeHTML(contact.name)}">
           <button class="contact-person contact-open-button" type="button" data-action="view" aria-label="View ${escapeHTML(contact.name)}">
-            <span class="avatar avatar-tone-${colorIndex}">${escapeHTML(initials(contact.name))}</span>
             <span class="contact-name">${escapeHTML(contact.name)}</span>
           </button>
           ${fieldCells}
           <div class="contact-actions">
+            <button class="row-action row-reachout${contact.reachout ? " is-reachout" : ""}" type="button" data-action="reachout" aria-label="${contact.reachout ? "Remove" : "Add"} ${escapeHTML(contact.name)} ${contact.reachout ? "from" : "to"} ReachOut" aria-pressed="${contact.reachout}" title="${contact.reachout ? "Remove from" : "Add to"} ReachOut">${contact.reachout ? "✓" : "↗"}</button>
             <button class="row-action row-edit" type="button" data-action="edit" aria-label="Edit ${escapeHTML(contact.name)}" title="Edit contact">✎</button>
             <button class="row-action row-favorite${contact.favorite ? " is-favorite" : ""}" type="button" data-action="favorite" aria-label="${contact.favorite ? "Remove from favorites" : "Add to favorites"}" aria-pressed="${contact.favorite}">♥</button>
             <button class="row-action row-delete" type="button" data-action="delete" aria-label="Delete ${escapeHTML(contact.name)}">×</button>
@@ -234,6 +234,7 @@ function openContactCard(contact) {
     ["Address", contact.address],
     ["Notes", contact.notes],
     ["Favorite", contact.favorite ? "Yes" : "No"],
+    ["ReachOut", contact.reachout ? "Yes" : "No"],
   ];
   elements.contactCardDetails.innerHTML = details.map(([label, value]) => `
       <div class="contact-card-field">
@@ -331,6 +332,7 @@ elements.search.addEventListener("input", () => {
 
 document.querySelectorAll(".nav-item").forEach((button) => {
   button.addEventListener("click", () => {
+    if (!button.dataset.filter) return;
     activeFilter = button.dataset.filter;
     document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item === button));
     render();
@@ -432,6 +434,10 @@ elements.list.addEventListener("click", async (event) => {
     }
     if (button.dataset.action === "favorite") {
       await window.contactsAPI.toggleFavorite(contact.id);
+      await refresh();
+    }
+    if (button.dataset.action === "reachout") {
+      await window.contactsAPI.toggleReachout(contact.id);
       await refresh();
     }
   } catch (error) {

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("contactsAPI", {
   update: (id, contact) => ipcRenderer.invoke("contacts:update", id, contact),
   delete: (id) => ipcRenderer.invoke("contacts:delete", id),
   toggleFavorite: (id) => ipcRenderer.invoke("contacts:toggle-favorite", id),
+  toggleReachout: (id) => ipcRenderer.invoke("contacts:toggle-reachout", id),
   importCSV: () => ipcRenderer.invoke("contacts:import-csv"),
   exportCSV: () => ipcRenderer.invoke("contacts:export-csv"),
   getTheme: () => ipcRenderer.invoke("preferences:get-theme"),
